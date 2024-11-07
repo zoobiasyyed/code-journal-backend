@@ -82,7 +82,7 @@ app.put('/api/entries/:entryId', async (req, res, next) => {
 
     const sql = `
     update "entries"
-    set "title" = $1, "name" = $2, "photoUrl" = $3
+    set "title" = $1, "notes" = $2, "photoUrl" = $3
     where "entryId" = $4
     returning *
     `;
@@ -93,6 +93,26 @@ app.put('/api/entries/:entryId', async (req, res, next) => {
       throw new ClientError(404, `entryId ${entryId} not found`);
     res.status(204).json(editedEntry);
   } catch (err) {}
+});
+
+app.delete('/api/entries/:entryId', async (req, res, next) => {
+  try {
+    const { entryId } = req.params;
+    if (!Number.isInteger(+entryId))
+      throw new ClientError(400, `entryId ${entryId} must be an integer`);
+    const sql = `
+    Delete From "entries"
+    Where "entryId" = $1
+    returning *
+    `;
+    const params = [entryId];
+    const result = await db.query(sql, params);
+    const deletedEntry = result.rows[0];
+    if (!deletedEntry) throw new ClientError(404, 'no entry');
+    res.sendStatus(204);
+  } catch (err) {
+    next(err);
+  }
 });
 
 app.use(errorMiddleware);
